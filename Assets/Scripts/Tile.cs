@@ -16,6 +16,7 @@ public class Tile : MonoBehaviour
 
     private Action<Tile> onClicked;
     private BoardGenerator board;
+    [SerializeField] float scaleInTray;
 
     void Awake()
     {
@@ -32,7 +33,7 @@ public class Tile : MonoBehaviour
 
         if (iconSR) iconSR.sprite = icon;
 
-        // Order theo layerIndex: dưới cùng = 1, trên tăng dần
+        // order theo layerIndex (layer 0 = 1, layer 1 = 2, ...)
         if (iconSR) iconSR.sortingOrder = layerIndex + 1;
 
         isInTray = false;
@@ -52,10 +53,13 @@ public class Tile : MonoBehaviour
         transform.DOKill();
         transform.DOMove(trayPos, 0.25f).SetEase(Ease.OutQuad).OnComplete(() =>
         {
-            onArrive?.Invoke(); // chỉ khi tới nơi mới xử lý match
+            onArrive?.Invoke();
         });
-        transform.DOScale(1f, 0.2f);
-        if (iconSR) iconSR.sortingOrder = 9999; // trong khay luôn nổi
+
+        // ✅ nhỏ lại khi vào khay
+        transform.DOScale(scaleInTray, 0.25f);
+
+        if (iconSR) iconSR.sortingOrder = 9999; // luôn nổi trong khay
     }
 
     public void MoveToBoard(Vector3 pos, Action onArrive = null)
@@ -66,7 +70,10 @@ public class Tile : MonoBehaviour
         {
             onArrive?.Invoke();
         });
-        transform.DOScale(1f, 0.2f);
+
+        // ✅ to lại khi trả về board
+        transform.DOScale(1f, 0.25f);
+
         if (iconSR) iconSR.sortingOrder = layerIndex + 1;
     }
 

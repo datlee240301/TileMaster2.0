@@ -5,31 +5,34 @@ using DG.Tweening;
 
 public class GameManager : MonoBehaviour
 {
-    [Header("Tray")] public Transform trayRoot;
+    [Header("Tray")]
+    public Transform trayRoot;
     public int trayCapacity = 7;
 
-    [Header("Buttons")] public UnityEngine.UI.Button btnUndo, btnShuffle, btnAddTrayTile;
+    [Header("Buttons")]
+    public UnityEngine.UI.Button btnUndo, btnShuffle, btnHint;
 
-    private readonly List<Tile> tray = new(); // thứ tự trong khay (cuối danh sách = tile mới nhất)
-    private List<Tile> allTiles; // tất cả tile còn tồn tại (board + tray)
-    [SerializeField] GameObject hiddenTileContainer;
+    private readonly List<Tile> tray = new();   // tile trong khay (thứ tự)
+    private List<Tile> allTiles;                // tất cả tile còn tồn tại (board + tray)
 
-    // Lưu thông tin để undo đúng vị trí cũ
     private struct UndoStep
     {
         public Tile tile;
-        public Vector3 prevPos; // vị trí trên board trước khi nhặt
+        public Vector3 prevPos;
     }
-
     private readonly Stack<UndoStep> undoStack = new();
 
     public IEnumerable<Tile> AllCurrentTiles => allTiles?.Where(t => t != null) ?? System.Linq.Enumerable.Empty<Tile>();
 
+    // flags
+    private bool isShuffling = false;
+    private bool isHintRunning = false;
+
     void Start()
     {
         if (btnUndo) btnUndo.onClick.AddListener(Undo);
-        if (btnShuffle) btnShuffle.onClick.AddListener(Shuffle);
-        if (btnAddTrayTile) btnAddTrayTile.onClick.AddListener(AddTrayTile);
+        if (btnShuffle) btnShuffle.onClick.AddListener(() => { if (!isShuffling && !isHintRunning) Shuffle(); });
+        if (btnHint) btnHint.onClick.AddListener(() => { if (!isShuffling && !isHintRunning) Hint(); });
 
         FindObjectOfType<BoardGenerator>().BuildLevel("level1");
     }
@@ -38,17 +41,15 @@ public class GameManager : MonoBehaviour
 
     public void OnTileClicked(Tile t)
     {
+        if (isShuffling || isHintRunning) return; // không cho click khi shuffle hoặc hint
         if (tray.Count >= trayCapacity) return;
 
-        // Ghi lại vị trí cũ để hoàn tác LIFO
         undoStack.Push(new UndoStep { tile = t, prevPos = t.transform.position });
-
-        // Đưa vào khay (luôn add vào cuối = tile mới nhất)
         tray.Add(t);
+
         Vector3 slot = GetTrayPos(tray.Count - 1);
         t.MoveToTray(slot, () =>
         {
-            // Chỉ khi tile tới nơi mới check triple
             CheckTripleAndPruneUndo();
         });
     }
@@ -57,11 +58,9 @@ public class GameManager : MonoBehaviour
     {
         if (trayRoot.childCount > idx)
             return trayRoot.GetChild(idx).position;
-        // fallback: dàn ngang
         return trayRoot.position + new Vector3(idx * 1.0f, 0, 0);
     }
 
-    // Chỉ match khi tile đã xuống khay; đồng thời dọn các undo-step vô hiệu (tile đã bị phá)
     void CheckTripleAndPruneUndo()
     {
         var groups = tray.GroupBy(x => x.id).Where(g => g.Count() >= 3).ToList();
@@ -70,15 +69,13 @@ public class GameManager : MonoBehaviour
             foreach (var g in groups)
             {
                 int need = 3;
-                for (int i = tray.Count - 1; i >= 0 && need > 0; i--) // xoá từ cuối cho an toàn
+                for (int i = tray.Count - 1; i >= 0 && need > 0; i--)
                 {
                     if (tray[i].id == g.Key)
                     {
                         var tile = tray[i];
                         tray.RemoveAt(i);
                         allTiles.Remove(tile);
-
-                        // Khi tile bị phá -> mọi UndoStep tham chiếu tới nó đều vô nghĩa
                         RemoveUndoStepsOf(tile);
 
                         tile.DestroyAnim(null);
@@ -87,17 +84,21 @@ public class GameManager : MonoBehaviour
                 }
             }
 
-            // Sắp lại vị trí các tile còn trong khay
+            // cập nhật lại vị trí tray
             for (int i = 0; i < tray.Count; i++)
                 tray[i].MoveToTray(GetTrayPos(i));
         }
 
-        // Ngoài các tile vừa bị phá, cũng dọn các UndoStep đã "lỗi thời":
-        // ví dụ tile không còn nằm ở cuối khay thì không thể undo ngay
         PruneDeadSteps();
+
+        // ✅ check thắng game
+        if (allTiles.Count == 0)
+        {
+            Debug.Log("Win");
+        }
     }
 
-    // Xoá toàn bộ step liên quan tới tile đã huỷ
+
     void RemoveUndoStepsOf(Tile tile)
     {
         if (undoStack.Count == 0) return;
@@ -107,12 +108,9 @@ public class GameManager : MonoBehaviour
             var s = undoStack.Pop();
             if (s.tile != tile) tmp.Push(s);
         }
-
-        // đổ lại theo đúng thứ tự
         while (tmp.Count > 0) undoStack.Push(tmp.Pop());
     }
 
-    // Loại bỏ các step có tile null (đã huỷ) để stack sạch sẽ
     void PruneDeadSteps()
     {
         if (undoStack.Count == 0) return;
@@ -122,37 +120,29 @@ public class GameManager : MonoBehaviour
             var s = undoStack.Pop();
             if (s.tile != null) tmp.Push(s);
         }
-
         while (tmp.Count > 0) undoStack.Push(tmp.Pop());
     }
 
-    // ✅ Chỉ cho phép Undo khi tile mới nhất đang ở cuối khay
     void Undo()
     {
+        if (isShuffling || isHintRunning) return;
         if (tray.Count == 0 || undoStack.Count == 0) return;
 
-        var topTrayTile = tray[tray.Count - 1]; // tile mới nhất đang ở khay
-        var topStep = undoStack.Peek(); // step mới nhất đã ghi
+        var topTrayTile = tray[tray.Count - 1];
+        var topStep = undoStack.Peek();
 
-        // Chỉ undo nếu tile ở đỉnh stack CHÍNH LÀ tile cuối cùng trên khay
         if (topStep.tile != topTrayTile || topTrayTile == null)
-            return; // không làm gì (đúng yêu cầu LIFO)
+            return; // chỉ cho undo tile mới nhất
 
-        // Hợp lệ -> thực hiện Undo
         undoStack.Pop();
         tray.RemoveAt(tray.Count - 1);
 
-        // Trả về đúng vị trí cũ
         topTrayTile.MoveToBoard(topStep.prevPos);
-
-        // Không cần re-layout khay vì ta luôn pop phần tử cuối -> không tạo "lỗ"
     }
-
-    private bool isShuffling = false;
 
     void Shuffle()
     {
-        if (isShuffling) return; // đang shuffle thì không cho bấm tiếp
+        if (isShuffling) return;
         isShuffling = true;
 
         var boardTiles = allTiles.Where(t => t != null && !t.isInTray).ToList();
@@ -162,7 +152,6 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        // Nhóm theo layerIndex
         var groups = boardTiles.GroupBy(t => t.layerIndex);
         int tweenCount = 0;
 
@@ -177,23 +166,47 @@ public class GameManager : MonoBehaviour
             for (int i = 0; i < layerTiles.Count; i++)
             {
                 tweenCount++;
-                // ✅ thêm callback OnComplete để đếm số tween hoàn thành
                 layerTiles[i].MoveToBoard(poses[i], () =>
                 {
                     tweenCount--;
-                    if (tweenCount <= 0) isShuffling = false; // khi tất cả xong mới mở lại
+                    if (tweenCount <= 0) isShuffling = false;
                 });
             }
         }
 
-        // Nếu không có tween nào chạy thì mở lại luôn
         if (tweenCount == 0) isShuffling = false;
     }
 
-    void AddTrayTile()
+    void Hint()
     {
-        trayCapacity = 8;
-        hiddenTileContainer.SetActive(true);
+        if (isHintRunning) return;
+
+        // tìm id có ít nhất 3 tile selectable
+        var group = allTiles.Where(t => t != null && !t.isInTray && t.IsSelectable())
+                            .GroupBy(t => t.id)
+                            .FirstOrDefault(g => g.Count() >= 3);
+        if (group == null) return;
+
+        isHintRunning = true;
+        StartCoroutine(HintSequence(group.Take(3).ToList()));
+    }
+
+    System.Collections.IEnumerator HintSequence(List<Tile> tiles)
+    {
+        foreach (var t in tiles)
+        {
+            tray.Add(t);
+            Vector3 slot = GetTrayPos(tray.Count - 1);
+
+            bool arrived = false;
+            t.MoveToTray(slot, () => { arrived = true; });
+
+            yield return new WaitUntil(() => arrived);
+            CheckTripleAndPruneUndo();
+            yield return new WaitForSeconds(0.1f);
+        }
+
+        isHintRunning = false;
     }
 }
 

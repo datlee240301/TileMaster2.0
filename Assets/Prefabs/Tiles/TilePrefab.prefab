@@ -103,6 +103,7 @@ MonoBehaviour:
   layerIndex: 0
   grid: {x: 0, y: 0}
   iconSR: {fileID: 3598534818180419264}
+  scaleInTray: 0.75
 --- !u!61 &971582410176434480
 BoxCollider2D:
   m_ObjectHideFlags: 0
