@@ -88,8 +88,9 @@ public class Tile : MonoBehaviour
         });
     }
 
-    private void OnMouseUpAsButton()
+    private void OnMouseDown()
     {
         if (IsSelectable()) onClicked?.Invoke(this);
     }
+
 }

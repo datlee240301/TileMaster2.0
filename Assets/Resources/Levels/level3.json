@@ -1,8 +1,8 @@
 {
   "layers": [
     {
-      "offsetX": 1,
-      "offsetY": 1,
+      "offsetX": 0,
+      "offsetY": 0,
       "cells": [
         { "x": 0, "y": 0, "id": 32 },
         { "x": 1, "y": 0, "id":  18},

@@ -117,7 +117,8 @@ public class BoardGenerator : MonoBehaviour
     Vector3 GridToWorld(Vector2Int g, LayerData layerData, int layerIndex)
     {
         Vector3 p = new Vector3(g.x * cellSize.x, g.y * cellSize.y, 0f);
-        p += new Vector3(layerIndex * layerData.offsetX, layerIndex * layerData.offsetY, 0f);
+        // offset áp dụng trực tiếp cho layer này, không nhân layerIndex nữa
+        p += new Vector3(layerData.offsetX, layerData.offsetY, 0f);
         return boardRoot.TransformPoint(p);
     }
 

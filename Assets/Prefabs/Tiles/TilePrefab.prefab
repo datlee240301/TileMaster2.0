@@ -12,7 +12,6 @@ GameObject:
   - component: {fileID: 3598534818180419264}
   - component: {fileID: -1471049890597101540}
   - component: {fileID: 971582410176434480}
-  - component: {fileID: 885401611600986618}
   m_Layer: 0
   m_Name: TilePrefab
   m_TagString: Tile
@@ -133,7 +132,7 @@ BoxCollider2D:
   m_CallbackLayers:
     serializedVersion: 2
     m_Bits: 4294967295
-  m_IsTrigger: 1
+  m_IsTrigger: 0
   m_UsedByEffector: 0
   m_UsedByComposite: 0
   m_Offset: {x: 0, y: 0}
@@ -147,70 +146,5 @@ BoxCollider2D:
     adaptiveTiling: 0
   m_AutoTiling: 0
   serializedVersion: 2
-  m_Size: {x: 1.79, y: 2.07}
+  m_Size: {x: 1.36, y: 1.84}
   m_EdgeRadius: 0
---- !u!60 &885401611600986618
-PolygonCollider2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1821864252494465111}
-  m_Enabled: 0
-  m_Density: 1
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_ForceSendLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ForceReceiveLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ContactCaptureLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_CallbackLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_IsTrigger: 1
-  m_UsedByEffector: 0
-  m_UsedByComposite: 0
-  m_Offset: {x: 0, y: 0}
-  m_SpriteTilingProperty:
-    border: {x: 0, y: 0, z: 0, w: 0}
-    pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 2, y: 2.25}
-    newSize: {x: 2, y: 2.25}
-    adaptiveTilingThreshold: 0.5
-    drawMode: 0
-    adaptiveTiling: 0
-  m_AutoTiling: 0
-  m_Points:
-    m_Paths:
-    - - {x: 1, y: -0.685}
-      - {x: 1, y: 0.685}
-      - {x: 0.98999995, y: 0.755}
-      - {x: 0.90999997, y: 0.91499996}
-      - {x: 0.72999996, y: 1.0749999}
-      - {x: 0.59, y: 1.125}
-      - {x: -0.53999996, y: 1.125}
-      - {x: -0.59, y: 1.115}
-      - {x: -0.72999996, y: 1.0749999}
-      - {x: -0.96, y: 0.865}
-      - {x: -0.97999996, y: 0.78499997}
-      - {x: -1, y: 0.66499996}
-      - {x: -1, y: -0.765}
-      - {x: -0.78, y: -1.035}
-      - {x: -0.63, y: -1.105}
-      - {x: -0.53999996, y: -1.125}
-      - {x: 0.52, y: -1.125}
-      - {x: 0.57, y: -1.115}
-      - {x: 0.71999997, y: -1.0749999}
-      - {x: 0.94, y: -0.835}
-  m_UseDelaunayMesh: 0
