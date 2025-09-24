@@ -3,11 +3,26 @@ using UnityEngine;
 using System.IO;
 
 [System.Serializable]
-public class CellData { public int x; public int y; public int id = -1; } // -1 = random
+public class CellData 
+{ 
+    public int x; 
+    public int y; 
+    public int id = -1; // -1 = random
+}
+
 [System.Serializable]
-public class LayerData { public List<CellData> cells; }
+public class LayerData 
+{ 
+    public float offsetX = 0f;
+    public float offsetY = 0f;
+    public List<CellData> cells; 
+}
+
 [System.Serializable]
-public class LevelData { public List<LayerData> layers; }
+public class LevelData 
+{ 
+    public List<LayerData> layers; 
+}
 
 public class BoardGenerator : MonoBehaviour
 {
@@ -21,12 +36,16 @@ public class BoardGenerator : MonoBehaviour
 
     private readonly List<Tile> tiles = new();
     private GameManager gm;
+    private CameraController cameraController;
 
-    void Awake() => gm = FindObjectOfType<GameManager>();
+    void Awake()
+    {
+        gm = FindObjectOfType<GameManager>();
+        cameraController = FindObjectOfType<CameraController>();
+    }
 
     void Update()
     {
-        // Cập nhật sáng/tối theo che phủ thực tế
         foreach (var t in tiles)
         {
             if (t == null || t.isInTray) continue;
@@ -51,23 +70,26 @@ public class BoardGenerator : MonoBehaviour
         List<int> bag = MakeIdBag(totalCells, tileIcons.Length);
         int bagIdx = 0;
 
-        for (int layer = 0; layer < data.layers.Count; layer++)
+        for (int layerIndex = 0; layerIndex < data.layers.Count; layerIndex++)
         {
-            foreach (var c in data.layers[layer].cells)
+            LayerData layerData = data.layers[layerIndex];
+            foreach (var c in layerData.cells)
             {
                 var t = Instantiate(tilePrefab, boardRoot);
                 int id = (c.id >= 0) ? c.id : bag[bagIdx++];
 
-                Vector3 worldPos = GridToWorld(new Vector2Int(c.x, c.y), layer);
+                Vector3 worldPos = GridToWorld(new Vector2Int(c.x, c.y), layerData, layerIndex);
                 t.transform.position = worldPos;
 
                 var icon = tileIcons[id % tileIcons.Length];
-                t.Init(this, id, layer, new Vector2Int(c.x, c.y), icon, gm.OnTileClicked);
+                t.Init(this, id, layerIndex, new Vector2Int(c.x, c.y), icon, gm.OnTileClicked);
                 tiles.Add(t);
             }
         }
 
         gm.BindTiles(tiles);
+        if (cameraController != null)
+            cameraController.SetupCameraOnce();
     }
 
     int GetTotalCells(LevelData d)
@@ -79,13 +101,11 @@ public class BoardGenerator : MonoBehaviour
 
     List<int> MakeIdBag(int total, int types)
     {
-        // đảm bảo chia hết cho 3
         total = Mathf.CeilToInt(total / 3f) * 3;
 
         var bag = new List<int>(total);
         for (int i = 0; i < total; i++) bag.Add(i % types);
 
-        // shuffle
         for (int i = bag.Count - 1; i > 0; i--)
         {
             int r = Random.Range(0, i + 1);
@@ -94,18 +114,16 @@ public class BoardGenerator : MonoBehaviour
         return bag;
     }
 
-    Vector3 GridToWorld(Vector2Int g, int layer)
+    Vector3 GridToWorld(Vector2Int g, LayerData layerData, int layerIndex)
     {
-        // Có thể bỏ offset nếu muốn các layer thẳng hàng
         Vector3 p = new Vector3(g.x * cellSize.x, g.y * cellSize.y, 0f);
-        p += new Vector3(layer * 1f, layer * 1f, 0f); // lệch nhẹ để thấy chồng
+        p += new Vector3(layerIndex * layerData.offsetX, layerIndex * layerData.offsetY, 0f);
         return boardRoot.TransformPoint(p);
     }
 
     public bool HasCoveringTile(Tile t)
     {
-        // Bị che khi có tile ở layer cao hơn và collider overlap
-        foreach (var other in gm.AllCurrentTiles) // dùng list từ GM để loại tile đã bị phá huỷ
+        foreach (var other in gm.AllCurrentTiles)
         {
             if (other == null || other == t) continue;
             if (other.isInTray) continue;

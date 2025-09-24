@@ -34,7 +34,8 @@ public class GameManager : MonoBehaviour
         if (btnShuffle) btnShuffle.onClick.AddListener(() => { if (!isShuffling && !isHintRunning) Shuffle(); });
         if (btnHint) btnHint.onClick.AddListener(() => { if (!isShuffling && !isHintRunning) Hint(); });
 
-        FindObjectOfType<BoardGenerator>().BuildLevel("level1");
+        FindObjectOfType<BoardGenerator>().BuildLevel("level5");
+        
     }
 
     public void BindTiles(List<Tile> tiles) => allTiles = tiles;
