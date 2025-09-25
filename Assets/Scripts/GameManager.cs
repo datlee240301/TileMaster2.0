@@ -34,7 +34,7 @@ public class GameManager : MonoBehaviour
         if (btnShuffle) btnShuffle.onClick.AddListener(() => { if (!isShuffling && !isHintRunning) Shuffle(); });
         if (btnHint) btnHint.onClick.AddListener(() => { if (!isShuffling && !isHintRunning) Hint(); });
 
-        FindObjectOfType<BoardGenerator>().BuildLevel("level5");
+        FindObjectOfType<BoardGenerator>().BuildLevel("level10");
         
     }
 
