@@ -5,21 +5,22 @@ using DG.Tweening;
 
 public class GameManager : MonoBehaviour
 {
-    [Header("Tray")]
-    public Transform trayRoot;
+    [Header("Tray")] public Transform trayRoot;
     public int trayCapacity = 7;
 
-    [Header("Buttons")]
-    public UnityEngine.UI.Button btnUndo, btnShuffle, btnHint;
+    [Header("Buttons")] public UnityEngine.UI.Button btnUndo, btnShuffle, btnHint, btnAddTraySlot;
+    [SerializeField] GameObject traySlot;
+    bool traySlotAdded = false;
 
-    private readonly List<Tile> tray = new();   // tile trong khay (thứ tự)
-    private List<Tile> allTiles;                // tất cả tile còn tồn tại (board + tray)
+    private readonly List<Tile> tray = new(); // tile trong khay (thứ tự)
+    private List<Tile> allTiles; // tất cả tile còn tồn tại (board + tray)
 
     private struct UndoStep
     {
         public Tile tile;
         public Vector3 prevPos;
     }
+
     private readonly Stack<UndoStep> undoStack = new();
 
     public IEnumerable<Tile> AllCurrentTiles => allTiles?.Where(t => t != null) ?? System.Linq.Enumerable.Empty<Tile>();
@@ -31,11 +32,19 @@ public class GameManager : MonoBehaviour
     void Start()
     {
         if (btnUndo) btnUndo.onClick.AddListener(Undo);
-        if (btnShuffle) btnShuffle.onClick.AddListener(() => { if (!isShuffling && !isHintRunning) Shuffle(); });
-        if (btnHint) btnHint.onClick.AddListener(() => { if (!isShuffling && !isHintRunning) Hint(); });
+        if (btnShuffle)
+            btnShuffle.onClick.AddListener(() =>
+            {
+                if (!isShuffling && !isHintRunning) Shuffle();
+            });
+        if (btnHint)
+            btnHint.onClick.AddListener(() =>
+            {
+                if (!isShuffling && !isHintRunning) Hint();
+            });
+        if (btnAddTraySlot) btnAddTraySlot.onClick.AddListener(AddTraySlot);
 
-        FindObjectOfType<BoardGenerator>().BuildLevel("level10");
-        
+        FindObjectOfType<BoardGenerator>().BuildLevel("level15");
     }
 
     public void BindTiles(List<Tile> tiles) => allTiles = tiles;
@@ -49,10 +58,7 @@ public class GameManager : MonoBehaviour
         tray.Add(t);
 
         Vector3 slot = GetTrayPos(tray.Count - 1);
-        t.MoveToTray(slot, () =>
-        {
-            CheckTripleAndPruneUndo();
-        });
+        t.MoveToTray(slot, () => { CheckTripleAndPruneUndo(); });
     }
 
     Vector3 GetTrayPos(int idx)
@@ -109,6 +115,7 @@ public class GameManager : MonoBehaviour
             var s = undoStack.Pop();
             if (s.tile != tile) tmp.Push(s);
         }
+
         while (tmp.Count > 0) undoStack.Push(tmp.Pop());
     }
 
@@ -121,6 +128,7 @@ public class GameManager : MonoBehaviour
             var s = undoStack.Pop();
             if (s.tile != null) tmp.Push(s);
         }
+
         while (tmp.Count > 0) undoStack.Push(tmp.Pop());
     }
 
@@ -184,12 +192,20 @@ public class GameManager : MonoBehaviour
 
         // tìm id có ít nhất 3 tile selectable
         var group = allTiles.Where(t => t != null && !t.isInTray && t.IsSelectable())
-                            .GroupBy(t => t.id)
-                            .FirstOrDefault(g => g.Count() >= 3);
+            .GroupBy(t => t.id)
+            .FirstOrDefault(g => g.Count() >= 3);
         if (group == null) return;
 
         isHintRunning = true;
         StartCoroutine(HintSequence(group.Take(3).ToList()));
+    }
+
+    void AddTraySlot()
+    {
+        if (traySlotAdded) return;
+        trayCapacity = 8;
+        if (traySlot != null) traySlot.SetActive(true);
+        traySlotAdded = true;
     }
 
     System.Collections.IEnumerator HintSequence(List<Tile> tiles)

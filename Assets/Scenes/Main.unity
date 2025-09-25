@@ -1395,6 +1395,8 @@ MonoBehaviour:
   btnUndo: {fileID: 422697604}
   btnShuffle: {fileID: 1752983446}
   btnHint: {fileID: 1737043012}
+  btnAddTraySlot: {fileID: 1754516812}
+  traySlot: {fileID: 1731581378}
 --- !u!4 &822961874
 Transform:
   m_ObjectHideFlags: 0
